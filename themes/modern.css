@@ -1,0 +1,24 @@
+/* Modern Theme - Purple/blue gradients, shadows, rounded corners */
+:root {
+    --bg-card: white;
+    --bg-header: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --bg-hover: #f8f9ff;
+    --text-primary: #1a1a2e;
+    --text-secondary: #666;
+    --text-header: white;
+    --border-color: #e8e8f0;
+    --border-radius: 12px;
+    --shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
+    --value-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --header-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --widget-bg: #fafbff;
+    --table-header-bg: #667eea;
+}
+
+body {
+    background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf3 100%);
+}
+
+th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
