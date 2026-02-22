@@ -6,8 +6,21 @@ A skill for [OpenClaw](https://openclaw.dev) agents to generate beautiful visual
 
 ## Installation
 
+### 1. Install dependencies first
+
 ```bash
-clawhub install dynamic-ui
+# Ubuntu/Debian
+sudo apt-get install -y wkhtmltopdf jq fonts-noto-color-emoji
+
+# macOS
+brew install wkhtmltopdf jq
+```
+
+### 2. Clone the skill
+
+```bash
+git clone https://github.com/theashbhat/dynamic-ui-skill.git
+cd dynamic-ui-skill
 ```
 
 ## Quick Start
@@ -75,9 +88,9 @@ clawhub install dynamic-ui
 
 ## Dependencies
 
-- `wkhtmltoimage` — HTML to image conversion (installed via wkhtmltopdf package)
-- `jq` — JSON parsing
-- Chart.js (CDN) — For chart rendering
+- `wkhtmltoimage` — HTML to image conversion (from wkhtmltopdf package)
+- `jq` — JSON parsing  
+- `fonts-noto-color-emoji` — Emoji support (optional but recommended)
 
 ## License
 

@@ -6,11 +6,20 @@ metadata:
     requires:
       bins: ["wkhtmltoimage", "jq"]
     install:
-      - id: apt
+      - id: apt-wkhtmltopdf
         kind: apt
-        packages: ["wkhtmltopdf"]
-        bins: ["wkhtmltoimage"]
-        label: "Install wkhtmltoimage (apt)"
+        packages: ["wkhtmltopdf", "jq", "fonts-noto-color-emoji"]
+        bins: ["wkhtmltoimage", "jq"]
+        label: "Install wkhtmltoimage + jq (apt)"
+      - id: brew-wkhtmltopdf
+        kind: brew
+        packages: ["wkhtmltopdf", "jq"]
+        bins: ["wkhtmltoimage", "jq"]
+        label: "Install wkhtmltoimage + jq (brew)"
+    installHint: |
+      This skill requires wkhtmltoimage and jq. Install with:
+      Ubuntu/Debian: sudo apt-get install -y wkhtmltopdf jq fonts-noto-color-emoji
+      macOS: brew install wkhtmltopdf jq
 ---
 
 # Dynamic UI Skill
