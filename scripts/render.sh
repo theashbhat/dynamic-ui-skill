@@ -87,6 +87,14 @@ cp "$THEME_FILE" "$TEMP_DIR/theme.css"
 generate_table() {
     local data="$1"
     
+    # Extract title if present
+    local title=$(echo "$data" | jq -r '.title // ""')
+    if [[ -n "$title" && "$title" != "null" ]]; then
+        echo "<div class=\"page-title\">$title</div>" > "$TEMP_DIR/title.html"
+    else
+        echo "" > "$TEMP_DIR/title.html"
+    fi
+    
     # Build table HTML
     TABLE_HEADER=""
     for col in $(echo "$data" | jq -r '.columns[]'); do
@@ -131,6 +139,15 @@ generate_chart() {
 
 generate_stats() {
     local data="$1"
+    
+    # Extract title if present
+    local title=$(echo "$data" | jq -r '.title // ""')
+    if [[ -n "$title" && "$title" != "null" ]]; then
+        echo "<div class=\"page-title\">$title</div>" > "$TEMP_DIR/title.html"
+    else
+        echo "" > "$TEMP_DIR/title.html"
+    fi
+    
     STATS_HTML=""
     STAT_COUNT=$(echo "$data" | jq '.stats | length')
     for ((i=0; i<STAT_COUNT; i++)); do
@@ -236,8 +253,10 @@ build_html() {
         table)
             local header=$(cat "$TEMP_DIR/header.html")
             local body=$(cat "$TEMP_DIR/body.html")
+            local title_html=$(cat "$TEMP_DIR/title.html")
             cat "$TEMPLATE_FILE" | \
                 awk -v css="$theme_css" '{gsub(/\{\{THEME_CSS\}\}/, css); print}' | \
+                awk -v th="$title_html" '{gsub(/\{\{TITLE_HTML\}\}/, th); print}' | \
                 awk -v h="$header" '{gsub(/\{\{TABLE_HEADER\}\}/, h); print}' | \
                 awk -v b="$body" '{gsub(/\{\{TABLE_BODY\}\}/, b); print}' > "$TEMP_DIR/render.html"
             ;;
@@ -251,8 +270,10 @@ build_html() {
             ;;
         stats)
             local stats=$(cat "$TEMP_DIR/stats.html")
+            local title_html=$(cat "$TEMP_DIR/title.html")
             cat "$TEMPLATE_FILE" | \
                 awk -v css="$theme_css" '{gsub(/\{\{THEME_CSS\}\}/, css); print}' | \
+                awk -v th="$title_html" '{gsub(/\{\{TITLE_HTML\}\}/, th); print}' | \
                 awk -v s="$stats" '{gsub(/\{\{STATS_HTML\}\}/, s); print}' > "$TEMP_DIR/render.html"
             ;;
         card)
