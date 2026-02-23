@@ -80,24 +80,23 @@ echo '{"labels":["Q1","Q2"],"values":[100,200]}' | ./scripts/render.sh chart-bar
 ./scripts/render.sh stats --data '{"stats":[{"label":"Users","value":"12.5K","change":"+12%"},{"label":"Revenue","value":"$45K","change":"+8%"}]}' -o stats.png
 ```
 
-## ⚠️ ALWAYS Send Images Inline
+## 💡 Sending Images to Users
 
-**After rendering, you MUST send the image inline using the message tool.** Don't just save to disk — the user can't see it unless you send it!
+After rendering an image, you'll typically want to send it to the user. Here's the recommended workflow:
 
-### Required Workflow:
+### Recommended Workflow:
 ```bash
-# 1. ALWAYS render to ~/.openclaw/media/
+# 1. Render to ~/.openclaw/media/ (recommended path)
 ./scripts/render.sh table --data '...' -o ~/.openclaw/media/my-table.png
 
-# 2. IMMEDIATELY send inline via message tool
+# 2. Send inline via message tool
 message(action=send, filePath=/home/ubuntu/.openclaw/media/my-table.png, caption="Caption", channel=telegram, to=<user_id>)
 ```
 
-### Key Rules:
-1. **Always save to `~/.openclaw/media/`** — other paths won't work
-2. **Always call message tool after render** — user can't see disk files
-3. **Use descriptive captions** — helps user understand the visual
-4. **Send immediately** — don't wait for user to ask
+### Tips:
+- **Save to `~/.openclaw/media/`** — this path works reliably for inline sending
+- **Use descriptive captions** — helps users understand the visual
+- **Consider the context** — sometimes saving to disk is fine if the user requested it
 
 ### Example (complete flow):
 ```bash
@@ -105,11 +104,10 @@ message(action=send, filePath=/home/ubuntu/.openclaw/media/my-table.png, caption
 echo '{"title":"My Data","columns":["A","B"],"rows":[["1","2"]]}' | \
   ./scripts/render.sh table -o ~/.openclaw/media/data.png
 
-# Send (do this EVERY time!)
+# Send
 message(action=send, filePath=/home/ubuntu/.openclaw/media/data.png, caption="Here's your data", channel=telegram, to=USER_ID)
 ```
 
 ## Dependencies
 - `/usr/bin/wkhtmltoimage` — HTML to image conversion
 - `jq` — JSON parsing
-- Chart.js (CDN) — For chart rendering
