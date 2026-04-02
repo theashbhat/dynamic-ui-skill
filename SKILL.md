@@ -48,6 +48,7 @@ echo '{"labels":["Q1","Q2"],"values":[100,200]}' | ./scripts/render.sh chart-bar
 |----------|-------------|--------------|
 | `table` | Data tables | `{"columns": [...], "rows": [[...], ...]}` |
 | `chart-bar` | Bar charts | `{"labels": [...], "values": [...], "title": "..."}` |
+| `chart-line` | Line charts | `{"labels": [...], "values": [...], "title": "...", "subtitle": "...", "y_suffix": "%"}` |
 | `stats` | KPI cards | `{"stats": [{"label": "...", "value": "...", "change": "..."}]}` |
 | `card` | Info card | `{"title": "...", "subtitle": "...", "body": "...", "status": "green\|yellow\|red"}` |
 | `dashboard` | Composite | `{"title": "...", "widgets": [{"type": "stat\|table\|chart", ...}]}` |
@@ -75,6 +76,12 @@ echo '{"labels":["Q1","Q2"],"values":[100,200]}' | ./scripts/render.sh chart-bar
 
 # Render a bar chart
 ./scripts/render.sh chart-bar --data '{"labels":["Jan","Feb","Mar"],"values":[120,150,180],"title":"Monthly Sales"}' --style dark -o chart.png
+
+# Render a line chart (single series)
+./scripts/render.sh chart-line --data '{"labels":["W1","W2","W3","W4"],"values":[10,12,15,25],"title":"Growth","subtitle":"Week over week","y_suffix":"%"}' --style dark -o line.png
+
+# Render a line chart (multi-series)
+./scripts/render.sh chart-line --data '{"labels":["Q1","Q2","Q3","Q4"],"datasets":[{"label":"Revenue","values":[100,150,200,350]},{"label":"Costs","values":[80,90,100,120]}],"title":"Revenue vs Costs"}' -o multi.png
 
 # Render stats
 ./scripts/render.sh stats --data '{"stats":[{"label":"Users","value":"12.5K","change":"+12%"},{"label":"Revenue","value":"$45K","change":"+8%"}]}' -o stats.png

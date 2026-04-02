@@ -163,6 +163,32 @@ generate_chart() {
     echo "$BARS_HTML" > "$TEMP_DIR/bars.html"
 }
 
+generate_line_chart() {
+    local data="$1"
+    local title=$(echo "$data" | jq -r '.title // "Chart"')
+    local subtitle=$(echo "$data" | jq -r '.subtitle // ""')
+    local y_suffix=$(echo "$data" | jq -r '.y_suffix // ""')
+    echo "$title" > "$TEMP_DIR/title.txt"
+    echo "$subtitle" > "$TEMP_DIR/subtitle.txt"
+    echo "$y_suffix" > "$TEMP_DIR/y_suffix.txt"
+    
+    # Labels array as JSON
+    echo "$data" | jq -c '.labels' > "$TEMP_DIR/labels.json"
+    
+    # Datasets: support single series (values) or multi-series (datasets)
+    local has_datasets=$(echo "$data" | jq 'has("datasets")')
+    if [[ "$has_datasets" == "true" ]]; then
+        echo "$data" | jq -c '.datasets' > "$TEMP_DIR/datasets.json"
+    else
+        # Single series — wrap in datasets array
+        local label=$(echo "$data" | jq -r '.dataset_label // "Value"')
+        echo "$data" | jq -c "[{\"label\": \"$label\", \"values\": .values}]" > "$TEMP_DIR/datasets.json"
+    fi
+    
+    # Copy Chart.js source for inline embedding
+    cp "$TEMPLATES_DIR/chartjs.min.js" "$TEMP_DIR/chartjs.min.js"
+}
+
 generate_stats() {
     local data="$1"
     
@@ -331,6 +357,34 @@ build_html() {
                 awk -v t="$title" '{gsub(/\{\{TITLE\}\}/, t); print}' | \
                 awk -v b="$bars" '{gsub(/\{\{BARS_HTML\}\}/, b); print}' > "$TEMP_DIR/render.html"
             ;;
+        chart-line)
+            local title=$(cat "$TEMP_DIR/title.txt")
+            local subtitle=$(cat "$TEMP_DIR/subtitle.txt")
+            local y_suffix=$(cat "$TEMP_DIR/y_suffix.txt")
+            # Use python for all replacements (theme CSS + Chart.js are too large for sed/awk)
+            python3 -c "
+import sys
+with open('$TEMPLATE_FILE', 'r') as f:
+    html = f.read()
+with open('$TEMP_DIR/theme.css', 'r') as f:
+    theme = f.read()
+with open('$TEMP_DIR/chartjs.min.js', 'r') as f:
+    chartjs = f.read()
+with open('$TEMP_DIR/labels.json', 'r') as f:
+    labels = f.read().strip()
+with open('$TEMP_DIR/datasets.json', 'r') as f:
+    datasets = f.read().strip()
+html = html.replace('{{THEME_CSS}}', theme)
+html = html.replace('{{CHARTJS_SOURCE}}', chartjs)
+html = html.replace('{{TITLE}}', '''$title''')
+html = html.replace('{{SUBTITLE}}', '''$subtitle''')
+html = html.replace('{{Y_SUFFIX}}', '''$y_suffix''')
+html = html.replace('{{LABELS_JSON}}', labels)
+html = html.replace('{{DATASETS_JSON}}', datasets)
+with open('$TEMP_DIR/render.html', 'w') as f:
+    f.write(html)
+"
+            ;;
         stats)
             local stats=$(cat "$TEMP_DIR/stats.html")
             local title_html=$(cat "$TEMP_DIR/title.html")
@@ -374,6 +428,10 @@ case $TEMPLATE in
         generate_chart "$DATA"
         build_html chart-bar
         ;;
+    chart-line)
+        generate_line_chart "$DATA"
+        build_html chart-line
+        ;;
     stats)
         generate_stats "$DATA"
         build_html stats
@@ -399,15 +457,46 @@ else
     OUTPUT_FILE="$OUTPUT"
 fi
 
-# Render with wkhtmltoimage
-/usr/bin/wkhtmltoimage \
-    --quiet \
-    --width "$WIDTH" \
-    --enable-javascript \
-    --javascript-delay 500 \
-    --format png \
-    "$TEMP_DIR/render.html" \
-    "$OUTPUT_FILE"
+# Determine render engine — charts need Puppeteer (wkhtmltoimage uses old QtWebKit that can't run Chart.js)
+RENDER_ENGINE="wkhtmltoimage"
+if [[ "$TEMPLATE" == chart-* ]]; then
+    # Check for Chrome/Puppeteer
+    CHROME_PATH=$(find /home -path "*/puppeteer/chrome/*/chrome" -type f 2>/dev/null | head -1)
+    if [[ -n "$CHROME_PATH" ]] && command -v node &>/dev/null && node -e "require('puppeteer')" 2>/dev/null; then
+        RENDER_ENGINE="puppeteer"
+    fi
+fi
+
+if [[ "$RENDER_ENGINE" == "puppeteer" ]]; then
+    PUPPETEER_SCRIPT=$(cat <<'ENDSCRIPT'
+const puppeteer = require('puppeteer');
+(async () => {
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    executablePath: process.env.CHROME_PATH
+  });
+  const page = await browser.newPage();
+  await page.setViewport({ width: parseInt(process.env.RENDER_WIDTH), height: 500 });
+  await page.goto('file://' + process.env.RENDER_HTML, { waitUntil: 'networkidle0', timeout: 10000 });
+  await new Promise(r => setTimeout(r, 1500));
+  const el = await page.$('.chart-container') || page;
+  await el.screenshot({ path: process.env.RENDER_OUTPUT });
+  await browser.close();
+})();
+ENDSCRIPT
+    )
+    CHROME_PATH="$CHROME_PATH" RENDER_WIDTH="$WIDTH" RENDER_HTML="$TEMP_DIR/render.html" RENDER_OUTPUT="$OUTPUT_FILE" node -e "$PUPPETEER_SCRIPT"
+else
+    /usr/bin/wkhtmltoimage \
+        --quiet \
+        --width "$WIDTH" \
+        --enable-javascript \
+        --javascript-delay 500 \
+        --format png \
+        "$TEMP_DIR/render.html" \
+        "$OUTPUT_FILE"
+fi
 
 # If no output specified, output base64 to stdout
 if [[ -z "$OUTPUT" ]]; then
